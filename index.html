@@ -32,6 +32,7 @@
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none}
 html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
 body{background:var(--bg);color:var(--fg);font:15px/1.35 var(--f);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -214,9 +215,9 @@ textarea{resize:vertical;line-height:1.35}
     <button class="tb needdoc" id="bTools" data-i="tools" aria-label="Convertir et outils"></button>
     <button class="save needdoc" id="bSave">Enregistrer</button>
   </header>
-  <input id="fileIn" type="file" accept="application/pdf,.pdf,image/*" multiple hidden>
-  <input id="camIn" type="file" accept="image/*" capture="environment" hidden>
-  <input id="imgIn" type="file" accept="image/*" hidden>
+  <input id="fileIn" type="file" accept="application/pdf,.pdf,image/*" multiple class="vh">
+  <input id="camIn" type="file" accept="image/*" capture="environment" class="vh">
+  <input id="imgIn" type="file" accept="image/*" class="vh">
   <main>
     <span id="pgPill"></span>
     <aside id="rail"><div class="tlist" id="railList"></div></aside>
@@ -230,7 +231,7 @@ textarea{resize:vertical;line-height:1.35}
         <label class="btn big" for="camIn">Photographier un document</label>
         <button class="btn primary big" id="bResume" hidden>Reprendre le document en cours</button>
         <button class="btn big plain" id="bSample">Essayer avec un exemple</button>
-        <p class="small" style="opacity:.7">Version 19/10/2026 00:36</p>
+        <p class="small" style="opacity:.7">Version 19/10/2026 00:44</p>
         <p class="small" id="installTip">Sur iPhone : bouton Partager, puis « Sur l'écran d'accueil » pour l'installer comme une app.</p>
       </div>
     </section>
@@ -279,7 +280,7 @@ textarea{resize:vertical;line-height:1.35}
       <p>Les photos choisies sont réduites et enregistrées en JPEG, sans toucher aux originaux.</p>
       <div class="row"><label class="field">Qualité<select id="icQ"><option value="0.82">Haute</option><option value="0.65" selected>Moyenne</option><option value="0.45">Basse</option></select></label>
         <label class="field">Taille maximale<select id="icMax"><option value="0">Taille d'origine</option><option value="2560">2560 px</option><option value="1600" selected>1600 px</option><option value="1024">1024 px</option></select></label></div>
-      <label class="btn" for="icIn">Choisir des photos…</label><input id="icIn" type="file" accept="image/*" multiple hidden>
+      <label class="btn" for="icIn">Choisir des photos…</label><input id="icIn" type="file" accept="image/*" multiple class="vh">
     </div></details>
     <details class="grp"><summary>Numéroter les pages</summary><div class="in">
       <div class="row"><label class="field">Position<select id="nPos"><option value="bc">Bas, centré</option><option value="br">Bas, à droite</option><option value="bl">Bas, à gauche</option><option value="tr">Haut, à droite</option><option value="tc">Haut, centré</option></select></label>
@@ -294,7 +295,7 @@ textarea{resize:vertical;line-height:1.35}
       <p><b>Dessiner en étant zoomé</b> : faites défiler la page avec deux doigts.</p>
       <p><b>Apple Pencil</b> : le stylet dessine, le doigt fait défiler.</p>
       <p><b>Travail en cours</b> : il est gardé automatiquement sur cet appareil et rouvert au prochain lancement.</p>
-      <p style="opacity:.7">Version 19/10/2026 00:36</p>
+      <p style="opacity:.7">Version 19/10/2026 00:44</p>
     </div></details>
     <details class="grp"><summary>Filigrane</summary><div class="in">
       <div class="row"><label class="field">Texte<input id="wText" type="text" value="CONFIDENTIEL"></label><label class="field" style="flex:0 0 70px">Couleur<input id="wColor" type="color" value="#8c1d2f" style="height:42px;padding:4px;border:0;border-radius:10px;background:var(--fill)"></label></div>
@@ -836,6 +837,11 @@ function actions(title, list){
 $('#shAct')._close=()=>closeSheet('#shAct'); $('#actCancel').onclick=()=>closeSheet('#shAct');
 
 /* ---------- ouverture ---------- */
+// Lecture d'un fichier, avec une méthode de secours pour les anciennes versions de Safari
+const readBytes = f => f.arrayBuffer ? f.arrayBuffer().then(b=>new Uint8Array(b)) :
+  new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(new Uint8Array(r.result)); r.onerror=()=>rej(r.error); r.readAsArrayBuffer(f); });
+// Un fichier qui ne se lit pas au bout de 45 s donne un message clair au lieu d'une attente sans fin
+const withTimeout = (p, ms, msg) => Promise.race([p, new Promise((_,rej)=>setTimeout(()=>{ const e=new Error('délai'); e.userMsg=msg; rej(e); },ms))]);
 async function openFiles(files){
   files=[...files]; if(!files.length) return;
   let first=null;
@@ -847,7 +853,8 @@ async function openFiles(files){
       try{
         const isPdf = f.type==='application/pdf' || /\.pdf$/i.test(f.name);
         let ps=null;
-        if(isPdf) ps=await addPdf(new Uint8Array(await f.arrayBuffer()), f.name);
+        if(isPdf){ say('Lecture de '+f.name+'…'); const by=await withTimeout(readBytes(f),45000,`« ${f.name} » n'a pas pu être lu depuis l'iPhone.`);
+          say('Préparation des pages…'); ps=await withTimeout(addPdf(by, f.name),45000,`« ${f.name} » met trop de temps à s'ouvrir.`); }
         else if(f.type.startsWith('image/') || /\.(jpe?g|png|heic|heif|webp|gif|tiff?)$/i.test(f.name)) ps=await addPdf(await imageToPdf(f), f.name||'photo.jpg');
         else if(/\.(docx?|rtf|odt)$/i.test(f.name)){ toast('Les documents Word ne peuvent pas être ouverts ici. Enregistrez-les d\'abord en PDF.'); continue; }
         else { toast(`« ${f.name} » : format non pris en charge.`); continue; }
@@ -1522,7 +1529,12 @@ function refresh(){
 }
 
 /* ---------- branchements ---------- */
-$('#fileIn').onchange=e=>{ const f=[...e.target.files]; e.target.value=''; pickedFiles(f); };
+// Diagnostic visible : on confirme à l'écran la réception du fichier, et toute erreur s'affiche
+$('#fileIn').onchange=e=>{ const f=[...(e.target.files||[])]; e.target.value='';
+  if(!f.length){ toast('Aucun fichier reçu du sélecteur.'); return; }
+  toast('Fichier reçu : '+f[0].name+' ('+(f[0].type||'type inconnu')+', '+fmtSize(f[0].size)+')'); pickedFiles(f); };
+window.addEventListener('error',e=>{ toast('Erreur : '+(e.message||'inconnue')); });
+window.addEventListener('unhandledrejection',e=>{ const r=e.reason; toast('Erreur : '+((r&&(r.userMsg||r.message))||r||'inconnue')); });
 $('#camIn').onchange=e=>{ const f=[...e.target.files]; e.target.value=''; pickedFiles(f); };
 document.querySelectorAll('label[for=fileIn],label[for=camIn]').forEach(l=>l.addEventListener('click',()=>{ forceAppend=false; }));
 $('#imgIn').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(f){ try{ placeImage(await loadImage(f,2000)); }catch(er){ toast(er.userMsg||'Image illisible.'); } } };
