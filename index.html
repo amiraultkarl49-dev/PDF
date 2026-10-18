@@ -230,6 +230,7 @@ textarea{resize:vertical;line-height:1.35}
         <label class="btn big" for="camIn">Photographier un document</label>
         <button class="btn primary big" id="bResume" hidden>Reprendre le document en cours</button>
         <button class="btn big plain" id="bSample">Essayer avec un exemple</button>
+        <p class="small" style="opacity:.7">Version 19/10/2026 00:36</p>
         <p class="small" id="installTip">Sur iPhone : bouton Partager, puis « Sur l'écran d'accueil » pour l'installer comme une app.</p>
       </div>
     </section>
@@ -293,6 +294,7 @@ textarea{resize:vertical;line-height:1.35}
       <p><b>Dessiner en étant zoomé</b> : faites défiler la page avec deux doigts.</p>
       <p><b>Apple Pencil</b> : le stylet dessine, le doigt fait défiler.</p>
       <p><b>Travail en cours</b> : il est gardé automatiquement sur cet appareil et rouvert au prochain lancement.</p>
+      <p style="opacity:.7">Version 19/10/2026 00:36</p>
     </div></details>
     <details class="grp"><summary>Filigrane</summary><div class="in">
       <div class="row"><label class="field">Texte<input id="wText" type="text" value="CONFIDENTIEL"></label><label class="field" style="flex:0 0 70px">Couleur<input id="wColor" type="color" value="#8c1d2f" style="height:42px;padding:4px;border:0;border-radius:10px;background:var(--fill)"></label></div>
@@ -1555,6 +1557,6 @@ renderDock(); refresh(); tryRestore();
 
 })();
 </script>
-<script>if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(function(){});</script>
+<script>if('serviceWorker' in navigator && location.protocol==='https:'){ var hadSW=!!navigator.serviceWorker.controller, reloaded=false; navigator.serviceWorker.addEventListener('controllerchange',function(){ if(hadSW && !reloaded){ reloaded=true; location.reload(); } }); navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(r){ r.update(); }).catch(function(){}); }</script>
 </body>
 </html>
