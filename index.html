@@ -1547,6 +1547,10 @@ window.addEventListener('keydown',e=>{
   else if(e.key==='Escape'){ if(!$('#shText').hidden) closeText(false); else if(S.tool!=='select') setTool('select'); }
 });
 if(window.matchMedia('(display-mode: standalone)').matches || navigator.standalone || !/iPhone|iPad|iPod/.test(navigator.userAgent)) $('#installTip').hidden=true;
+// iPhone / iPad : le sélecteur de Fichiers d'iOS peut laisser « Ouvrir » grisé quand la page filtre les types
+// et autorise plusieurs fichiers. On ouvre donc un fichier à la fois, d'un simple toucher, sans filtre : l'app vérifie elle-même.
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+if(IOS){ const fi=$('#fileIn'); fi.removeAttribute('multiple'); fi.removeAttribute('accept'); }
 renderDock(); refresh(); tryRestore();
 
 })();
